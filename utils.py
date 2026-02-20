@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 from claude_agent_sdk import ( AssistantMessage, ResultMessage, TextBlock, ToolUseBlock,
 )
@@ -69,23 +70,58 @@ def write_stream_log_header(log_path: str, round_num: int, query: str) -> None:
         f.write(f"\n---\n## Round {round_num} — {ts}\n**Query:** {query}\n\n")
 
 
+# ── Pending Tool Tracker ─────────────────────────────────
+# Tracks tools currently in-flight for watchdog reporting.
+
+pending_tools: dict[str, dict] = {}  # tool_use_id → {name, start_time, agent_name}
+
+
+def track_tool_start(tool_use_id: str, name: str, agent_name: str) -> None:
+    """Register a tool as in-flight."""
+    pending_tools[tool_use_id] = {
+        "name": name,
+        "start_time": time.time(),
+        "agent_name": agent_name,
+    }
+
+
+def mark_tool_complete(tool_use_id: str) -> dict | None:
+    """Remove a tool from the pending tracker. Returns its info or None."""
+    return pending_tools.pop(tool_use_id, None)
+
+
+def get_pending_tools_summary() -> str:
+    """Format a summary of currently pending tools for watchdog output."""
+    if not pending_tools:
+        return ""
+    now = time.time()
+    parts = []
+    for info in pending_tools.values():
+        elapsed = now - info["start_time"]
+        parts.append(f"{info['name']} ({elapsed:.0f}s, {info['agent_name']})")
+    return ", ".join(parts)
+
+
 def display_message(message: AssistantMessage, stream_log: str | None = None):
     agent_label, agent_name = _get_agent_label(message)
 
     for block in message.content:
         if isinstance(block, ToolUseBlock):
+            tool_id_full = getattr(block, 'id', None)
+            if tool_id_full:
+                track_tool_start(tool_id_full, block.name, agent_name)
+
             if block.name == 'Task':
                 subagent_type = block.input.get('subagent_type', 'unknown')
                 description = block.input.get('description', '')
-                tool_id = getattr(block, 'id', None)
-                if tool_id:
-                    subagent_registry[tool_id] = subagent_type
+                if tool_id_full:
+                    subagent_registry[tool_id_full] = subagent_type
                 print(f"{_timestamp()} {agent_label} 🚀 Spawning subagent: {BOLD}{subagent_type}{RESET}")
                 if description:
                     print(f"   Description: {description}")
             else:
-                tool_id = getattr(block, 'id', 'unknown')[:8]
-                print(f"{_timestamp()} {agent_label} 🔧 {BOLD}{block.name}{RESET} (id: {tool_id})")
+                tool_id_short = (tool_id_full or 'unknown')[:8]
+                print(f"{_timestamp()} {agent_label} 🔧 {BOLD}{block.name}{RESET} (id: {tool_id_short})")
                 print(f"   Input: {format_input(block.input)}")
 
         elif isinstance(block, TextBlock):

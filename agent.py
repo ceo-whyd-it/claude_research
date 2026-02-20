@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import time
 from datetime import datetime
@@ -8,7 +9,10 @@ from claude_agent_sdk import (
     AgentDefinition, ClaudeSDKClient, ClaudeAgentOptions, AssistantMessage,
     HookMatcher, ResultMessage,
 )
-from utils import display_message, display_result, write_stream_log_header
+from utils import (
+    display_message, display_result, write_stream_log_header,
+    mark_tool_complete, get_pending_tools_summary,
+)
 
 load_dotenv()
 
@@ -19,10 +23,17 @@ MAX_RETRIES = 3
 SESSION_STATE_FILE = "session_data/session_state.json"
 STREAM_LOG_FILE = "session_data/stream_log.md"
 
+CLI_DEBUG_LOG = "session_data/cli_debug.log"
+SDK_LOG_FILE = "session_data/sdk.log"
+
 BOLD = "\033[1m"
 CYAN = "\033[36m"
 DIM = "\033[2m"
 RESET = "\033[0m"
+
+# ── Operational Logging State ────────────────────────────
+tool_start_times: dict[str, float] = {}
+activity_state = {"last_activity": 0.0, "last_tool": "none", "last_tool_id": ""}
 
 def print_welcome_banner():
     """Print a welcome banner with available topic types and example queries."""
@@ -46,6 +57,15 @@ def print_welcome_banner():
     print()
     print(f"{DIM}Type 'exit' to quit.{RESET}")
     print()
+
+def handle_stderr(line: str) -> None:
+    """Append CLI stderr output to debug log file."""
+    try:
+        with open(CLI_DEBUG_LOG, "a", encoding="utf-8") as f:
+            f.write(f"[{datetime.now().strftime('%H:%M:%S')}] {line}\n")
+    except Exception:
+        pass
+
 
 def load_prompt(filename: str) -> str:
     """Load a prompt from the prompts directory."""
@@ -96,6 +116,8 @@ def make_options(system_prompt, agents, hooks, resume=None):
         max_budget_usd=MAX_BUDGET_USD,
         resume=resume,
         hooks=hooks,
+        stderr=handle_stderr,
+        debug_stderr=None,
     )
 
 
@@ -106,11 +128,17 @@ audit_log: list[dict] = []
 
 async def audit_tool_calls(input_data: dict, tool_use_id: str, context) -> dict:
     """Record every tool call for the session summary."""
+    tool_name = input_data.get("tool_name", "unknown")
     audit_log.append({
         "timestamp": time.time(),
-        "tool": input_data.get("tool_name", "unknown"),
+        "tool_use_id": tool_use_id,
+        "tool": tool_name,
         "input_preview": str(input_data.get("tool_input", {}))[:80],
     })
+    if tool_use_id:
+        tool_start_times[tool_use_id] = time.time()
+    activity_state["last_tool"] = tool_name
+    activity_state["last_tool_id"] = tool_use_id or ""
     return {}
 
 
@@ -132,6 +160,31 @@ async def restrict_writes(input_data: dict, tool_use_id: str, context) -> dict:
     return {}
 
 
+async def log_tool_completion(input_data: dict, tool_use_id: str, context) -> dict:
+    """Log tool completion with execution duration."""
+    tool_name = input_data.get("tool_name", "unknown")
+    elapsed = 0.0
+    if tool_use_id and tool_use_id in tool_start_times:
+        elapsed = time.time() - tool_start_times.pop(tool_use_id)
+
+    # Update the matching audit log entry with duration
+    for entry in reversed(audit_log):
+        if entry.get("tool_use_id") == tool_use_id:
+            entry["duration_s"] = round(elapsed, 1)
+            break
+
+    # Clear from pending tracker
+    mark_tool_complete(tool_use_id)
+
+    # Display completion timing
+    if elapsed > 15:
+        print(f"{DIM}  \u26a0 {tool_name} took {elapsed:.1f}s (slow){RESET}")
+    else:
+        print(f"{DIM}  \u2713 {tool_name} completed in {elapsed:.1f}s{RESET}")
+
+    return {}
+
+
 def write_audit_log(entries: list[dict]) -> str | None:
     """Write audit log entries to a timestamped file. Returns the path or None."""
     if not entries:
@@ -145,9 +198,42 @@ def write_audit_log(entries: list[dict]) -> str | None:
     return path
 
 
+# ── Activity Watchdog ─────────────────────────────────────
+
+async def watchdog():
+    """Monitor for stalls — warn if no messages arrive for 30+ seconds."""
+    while True:
+        await asyncio.sleep(10)
+        last = activity_state["last_activity"]
+        if last == 0.0:
+            continue
+        elapsed = time.time() - last
+        if elapsed > 30:
+            pending = get_pending_tools_summary()
+            if pending:
+                print(f"\n{DIM}\u23f3 No activity for {elapsed:.0f}s. "
+                      f"Pending: {pending}{RESET}")
+            else:
+                last_tool = activity_state["last_tool"]
+                last_id = activity_state["last_tool_id"][:8] if activity_state["last_tool_id"] else "?"
+                print(f"\n{DIM}\u23f3 No activity for {elapsed:.0f}s — "
+                      f"last tool: {last_tool} ({last_id}). "
+                      f"CLI subprocess may be stuck.{RESET}")
+
+
 # ── Main ──────────────────────────────────────────────────
 
 async def main():
+    # ── Logging setup ────────────────────────────────────
+    os.makedirs("session_data", exist_ok=True)
+    logging.basicConfig(
+        filename=SDK_LOG_FILE,
+        level=logging.DEBUG,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+    )
+    # Truncate CLI debug log for a fresh session
+    with open(CLI_DEBUG_LOG, "w", encoding="utf-8") as f:
+        f.write(f"# CLI Debug Log — {datetime.now().isoformat()}\n")
 
     main_agent_prompt = load_prompt("main_agent.md")
     docs_researcher_prompt = load_prompt("docs_researcher.md")
@@ -186,6 +272,9 @@ async def main():
         "PreToolUse": [
             HookMatcher(matcher="*", hooks=[audit_tool_calls]),
             HookMatcher(matcher="Write", hooks=[restrict_writes]),
+        ],
+        "PostToolUse": [
+            HookMatcher(matcher="*", hooks=[log_tool_completion]),
         ],
     }
 
@@ -237,55 +326,65 @@ async def main():
 
                     while True:
                         hit_limit = False
-                        async for message in client.receive_response():
-                            if isinstance(message, AssistantMessage):
-                                display_message(message, stream_log=STREAM_LOG_FILE)
-                            elif isinstance(message, ResultMessage):
-                                round_elapsed = time.time() - round_state["start_time"]
-                                round_state["total_elapsed"] += round_elapsed
-                                round_state["round_elapsed"] = round_elapsed
+                        activity_state["last_activity"] = time.time()
+                        wd_task = asyncio.create_task(watchdog())
+                        try:
+                            async for message in client.receive_response():
+                                activity_state["last_activity"] = time.time()
+                                if isinstance(message, AssistantMessage):
+                                    display_message(message, stream_log=STREAM_LOG_FILE)
+                                elif isinstance(message, ResultMessage):
+                                    round_elapsed = time.time() - round_state["start_time"]
+                                    round_state["total_elapsed"] += round_elapsed
+                                    round_state["round_elapsed"] = round_elapsed
 
-                                round_turns = (message.num_turns - round_state["prev_turns"]
-                                               if hasattr(message, 'num_turns') else 0)
-                                round_cost = (message.total_cost_usd - round_state["prev_cost"]
-                                              if hasattr(message, 'total_cost_usd') else 0.0)
-                                round_state["round_turns"] = round_turns
-                                round_state["round_cost"] = round_cost
+                                    round_turns = (message.num_turns - round_state["prev_turns"]
+                                                   if hasattr(message, 'num_turns') else 0)
+                                    round_cost = (message.total_cost_usd - round_state["prev_cost"]
+                                                  if hasattr(message, 'total_cost_usd') else 0.0)
+                                    round_state["round_turns"] = round_turns
+                                    round_state["round_cost"] = round_cost
 
-                                # Persist session_id for crash recovery
-                                round_state["session_id"] = getattr(message, 'session_id', None)
-                                save_session_state(round_state, last_query)
+                                    # Persist session_id for crash recovery
+                                    round_state["session_id"] = getattr(message, 'session_id', None)
+                                    save_session_state(round_state, last_query)
 
-                                display_result(message, audit_log, round_state)
-                                log_path = write_audit_log(audit_log)
-                                if log_path:
-                                    print(f"{DIM}  Audit log: {log_path}{RESET}")
+                                    display_result(message, audit_log, round_state)
+                                    log_path = write_audit_log(audit_log)
+                                    if log_path:
+                                        print(f"{DIM}  Audit log: {log_path}{RESET}")
 
-                                # Update prev values for next round
-                                if hasattr(message, 'num_turns'):
-                                    round_state["prev_turns"] = message.num_turns
-                                if hasattr(message, 'total_cost_usd'):
-                                    round_state["prev_cost"] = message.total_cost_usd
+                                    # Update prev values for next round
+                                    if hasattr(message, 'num_turns'):
+                                        round_state["prev_turns"] = message.num_turns
+                                    if hasattr(message, 'total_cost_usd'):
+                                        round_state["prev_cost"] = message.total_cost_usd
 
-                                # Check limits using per-round deltas
-                                at_turn_limit = round_turns >= MAX_TURNS
-                                at_budget_limit = round_cost >= MAX_BUDGET_USD
-                                if at_turn_limit or at_budget_limit:
-                                    reason = "Turn limit" if at_turn_limit else "Budget limit"
-                                    total_cost = f"${message.total_cost_usd:.4f}" if hasattr(message, 'total_cost_usd') else "$?"
-                                    total_turns = message.num_turns if hasattr(message, 'num_turns') else "?"
-                                    print(f"{BOLD}\u26a0 {reason} reached "
-                                          f"(round: {round_turns} turns / ${round_cost:.2f}, "
-                                          f"total: {total_turns} turns / {total_cost}).{RESET}")
-                                    cont = input(f"Continue for another {MAX_TURNS} turns? [y/N]: ").strip().lower()
-                                    if cont == 'y':
-                                        hit_limit = True
-                                        audit_log.clear()
-                                        round_state["round"] += 1
-                                        round_state["start_time"] = time.time()
-                                        await client.query("/continue")
-                                    else:
-                                        hit_limit = False
+                                    # Check limits using per-round deltas
+                                    at_turn_limit = round_turns >= MAX_TURNS
+                                    at_budget_limit = round_cost >= MAX_BUDGET_USD
+                                    if at_turn_limit or at_budget_limit:
+                                        reason = "Turn limit" if at_turn_limit else "Budget limit"
+                                        total_cost = f"${message.total_cost_usd:.4f}" if hasattr(message, 'total_cost_usd') else "$?"
+                                        total_turns = message.num_turns if hasattr(message, 'num_turns') else "?"
+                                        print(f"{BOLD}\u26a0 {reason} reached "
+                                              f"(round: {round_turns} turns / ${round_cost:.2f}, "
+                                              f"total: {total_turns} turns / {total_cost}).{RESET}")
+                                        cont = input(f"Continue for another {MAX_TURNS} turns? [y/N]: ").strip().lower()
+                                        if cont == 'y':
+                                            hit_limit = True
+                                            audit_log.clear()
+                                            round_state["round"] += 1
+                                            round_state["start_time"] = time.time()
+                                            await client.query("/continue")
+                                        else:
+                                            hit_limit = False
+                        finally:
+                            wd_task.cancel()
+                            try:
+                                await wd_task
+                            except asyncio.CancelledError:
+                                pass
                         if not hit_limit:
                             break
 

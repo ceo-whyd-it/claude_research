@@ -93,6 +93,16 @@ Paths are relative to the file's own location.
 ## How to Read This Series
 
 {Reading order suggestions — sequential for beginners, jump-to for experienced readers}
+
+## Essential References
+
+| Resource | Link |
+|----------|------|
+| Official Docs | [{title}]({url}) |
+| Repository | [{title}]({url}) |
+| Best Tutorial | [{title}]({url}) |
+
+{Top 3 links — the same ones from README.md's Essential References section.}
 ```
 
 Target length: 400-600 words.
@@ -119,6 +129,13 @@ Target length: 400-600 words.
 ## Takeaway
 
 {What the reader can now do or understand. Specific and actionable. 2-3 sentences.}
+
+## Further Reading
+
+- [{Link Title}]({URL}) — {one-line description}
+- [{Link Title}]({URL}) — {one-line description}
+
+{2-4 links from resources.md most relevant to this chapter's topic. Every link must have a working URL.}
 ```
 
 Target length: 800-1500 words.
@@ -138,6 +155,13 @@ Target length: 800-1500 words.
 
 {Decision guide — help readers choose the right approach for their situation.
  Could be a table, flowchart (mermaid), or structured comparison.}
+
+## Further Reading
+
+- [{Link Title}]({URL}) — {one-line description}
+- [{Link Title}]({URL}) — {one-line description}
+
+{2-4 links to decision guides and comparison articles from resources.md.}
 ```
 
 Target length: 600-1200 words.
@@ -165,6 +189,13 @@ Target length: 600-1200 words.
 ## Running the Examples
 
 {Prerequisites and instructions for running the code examples.}
+
+## Further Reading
+
+- [{Link Title}]({URL}) — {one-line description}
+- [{Link Title}]({URL}) — {one-line description}
+
+{2-4 links to example repos and getting-started guides from resources.md.}
 ```
 
 Target length: 600-1200 words.

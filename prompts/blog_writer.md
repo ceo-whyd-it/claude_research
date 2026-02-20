@@ -17,7 +17,7 @@ Follow these steps in order:
 Read the research folder provided in your input. Check what exists:
 - `README.md` (required — becomes Part 0)
 - `learning-path.md` (required — becomes Parts 1-5)
-- `resources.md` (used for enrichment)
+- `resources.md` (required for Further Reading sections — extract 2-4 relevant links per chapter)
 - `practical-takeaways.md` (optional — becomes Part 6 if present)
 - `code-examples/` folder (optional — becomes Part 7 if present)
 
@@ -74,7 +74,19 @@ Only include Parts 6 and 7 rows if those source materials exist.
 
 - **Who This Is For** — target audience
 - **How to Read This Series** — suggested reading order
+- **Essential References** — top 3 general links (official docs, repo, best tutorial) from resources.md, formatted as a table
 - Navigation footer with Next link only
+
+### Step 5b: Extract Per-Chapter Links
+
+Read `resources.md` and map the most relevant links to each chapter:
+
+- Each chapter (Parts 1-5) gets 2-4 links most relevant to that chapter's topic
+- Part 0 (Introduction) gets the top 3 general links (official docs, repo, best tutorial)
+- Part 6 (Practical Takeaways) gets links to decision guides and comparison articles
+- Part 7 (Hands-On Code) gets links to example repos and getting-started guides
+
+Prefer links with URLs over references without them. Skip links that lack a URL.
 
 ### Step 6: Generate Parts 1-5 — Chapters
 
@@ -86,6 +98,13 @@ For each level (1-5), write `blog/{series-slug}/chapters/{NN}-{slug}.md` with:
 - Main content — adapted from the learning path level for narrative flow. Do NOT copy-paste. Restructure, add transitions, create a story arc.
 - At least one code block or mermaid diagram (required)
 - Takeaway — what the reader can now do or understand
+- Further Reading — 2-4 links from resources.md relevant to this chapter's topic, formatted as:
+
+## Further Reading
+
+- [Link Title](URL) — one-line description
+- [Link Title](URL) — one-line description
+
 - Navigation footer
 
 ### Step 7: Generate Part 6 — Practical Takeaways (Conditional)
@@ -97,6 +116,7 @@ Write `blog/{series-slug}/chapters/06-practical-takeaways.md` with:
 - Hook
 - Condensed actionable insights adapted from practical-takeaways.md
 - "When to use what" decision guide
+- Further Reading — 2-4 links to decision guides and comparison articles from resources.md
 - Navigation footer
 
 ### Step 8: Generate Part 7 — Hands-On Code (Conditional)
@@ -108,6 +128,7 @@ Write `blog/{series-slug}/code-examples/07-hands-on-code.md` with:
 - Hook
 - Walkthrough of each code example subfolder (e.g., `01-hello-world/`, `02-core-concepts/`) with explanations of what each demonstrates
 - How to run the examples
+- Further Reading — 2-4 links to example repos and getting-started guides from resources.md
 - Navigation footer
 
 ### Step 9: Verify Navigation Links

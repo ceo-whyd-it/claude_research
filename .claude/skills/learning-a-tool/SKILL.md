@@ -68,7 +68,7 @@ Create the folder in the current working directory (`./research_output/learning-
 
 ```
 research_output/learning-{tool-name}/
-├── README.md           # Overview and how to use this learning path
+├── README.md           # Overview, essential references, and how to use this learning path
 ├── resources.md        # All links organized by source (official, community)
 ├── learning-path.md    # Main content following the five levels
 └── code-examples/      # Runnable code for each section
@@ -76,3 +76,21 @@ research_output/learning-{tool-name}/
     ├── 02-core-concepts/
     └── 03-patterns/
 ```
+
+### README.md Must Include an "Essential References" Section
+
+After the overview and before the learning path description, include a curated **Essential References** section with the 5-8 most important links a learner should bookmark:
+
+- **Official docs** — main documentation URL
+- **Repository** — GitHub URL with star count
+- **Best tutorial** — single best written tutorial with author name
+- **Best video** — single best video resource with channel and duration
+- **Community** — primary community channel (Slack, Discord, or Reddit)
+- **Changelog/Releases** — where to track updates
+
+Format as a markdown table:
+
+| Resource | Link | Why |
+|----------|------|-----|
+| Official Docs | [docs.example.com](https://docs.example.com) | Comprehensive reference, always up-to-date |
+| ... | ... | ... |

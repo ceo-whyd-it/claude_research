@@ -1,0 +1,71 @@
+Create an agent team to build a User Profile Update feature across all layers.
+
+Break the work into 4 independent workstreams with clear file ownership:
+
+1. **Database Teammate**
+   Role: Create database migration for profile fields
+   Files: migrations/001_add_profile_fields.sql
+   Tasks:
+   - Add profile columns: bio (TEXT), avatar_url (VARCHAR(500)), updated_at (TIMESTAMP)
+   - Create index on updated_at
+   - Write rollback migration
+   - Test migration up/down
+   Tools: Read, Write, Bash
+   Model: Sonnet
+   Dependencies: None
+
+2. **API Teammate**
+   Role: Implement profile update API endpoint
+   Files: backend/routes/profile.py, backend/tests/test_profile.py
+   Tasks:
+   - Implement PUT /api/users/:id/profile endpoint
+   - Validate input (bio max 500 chars, avatar_url is valid URL)
+   - Require authentication (user can only update own profile)
+   - Return 200 with updated profile or 400/401/404 on error
+   - Write unit tests (success case, validation errors, auth errors)
+   Tools: Read, Write, Bash
+   Model: Sonnet
+   Dependencies: Database teammate must complete migration first
+
+3. **Frontend Teammate**
+   Role: Build profile edit React component
+   Files: frontend/src/components/ProfileEdit.tsx, frontend/src/components/ProfileEdit.test.tsx
+   Tasks:
+   - Create ProfileEdit component with form (bio textarea, avatar URL input)
+   - Add client-side validation matching API rules
+   - Show loading state during save
+   - Show success/error messages
+   - Write component tests (render, validation, submission)
+   Tools: Read, Write, Bash
+   Model: Sonnet
+   Dependencies: None (can work independently using API contract)
+
+4. **Integration Teammate**
+   Role: Write end-to-end tests for full user journey
+   Files: tests/e2e/test_profile_update.py
+   Tasks:
+   - Test complete flow: render form → fill fields → submit → verify database
+   - Test validation errors display correctly
+   - Test auth required (redirect to login if not authenticated)
+   - Test happy path with real database and frontend
+   Tools: Read, Write, Bash
+   Model: Sonnet
+   Dependencies: Both API and Frontend teammates must complete
+
+Instructions for all teammates:
+- Work in READ-ONLY mode first
+- Create a detailed implementation plan
+- Send plan for my approval before implementing
+- After approval, implement the plan
+- Write tests as you go
+- Mark task complete when done
+
+Instructions for me (Team Lead):
+- Do NOT implement anything yourself
+- Wait for teammates to send plans
+- Review and approve each plan
+- Let teammates work in parallel where possible
+- Wait for all teammates to finish before declaring success
+
+Use Sonnet for all teammates to balance capability and cost.
+Require plan approval before any implementation.

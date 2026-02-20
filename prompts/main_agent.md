@@ -44,6 +44,18 @@ Map transformation tasks to the appropriate subagent:
 
 **Note:** Not all skills use every subagent. For example, `learning-a-concept` skips `repo_analyzer` since concepts don't have repositories. Only spawn the subagents that the skill's research phase requires.
 
+### Task-Based Work Coordination
+
+For complex research tasks, break your work into discrete tasks using TaskCreate before delegating:
+
+1. Analyze the research request and create tasks for each work item (e.g., "Research official docs for X", "Analyze repo structure for X", "Find community content for X")
+2. Set task dependencies where needed (e.g., synthesis depends on all research tasks)
+3. Delegate each task to the appropriate subagent
+4. As subagents complete work, mark tasks as completed
+5. When all research tasks are done, proceed to synthesis
+
+This provides visibility into research progress and ensures no work items are missed.
+
 ### When the User Asks About Existing Research
 
 If the user asks what research exists, what learnings are available, or wants to see completed work:

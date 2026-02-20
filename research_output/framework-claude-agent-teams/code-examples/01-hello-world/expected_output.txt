@@ -1,0 +1,32 @@
+Expected Output:
+================
+
+🎯 Creating agent team with 2 teammates...
+✓ Spawned greeter
+✓ Spawned validator
+
+[greeter]: Hello! Welcome to the world of Claude Agent Teams! 🎉
+           We're excited to have you here. Agent teams enable powerful
+           parallel collaboration for complex tasks.
+
+[validator]: Reviewing greeting...
+             ✅ Tone is welcoming and friendly
+             ✅ Message is appropriate
+             ✅ Provides helpful context
+             Feedback: Great greeting! Suggests adding more specific use cases.
+
+[greeter]: Updated greeting with validator feedback:
+           Hello! Welcome to Claude Agent Teams! 🎉
+           With agent teams, you can:
+           - Run code reviews in parallel
+           - Debug with competing hypotheses
+           - Build features across multiple layers simultaneously
+           We're excited to work with you!
+
+[validator]: ✅ Excellent! This greeting is informative and welcoming.
+
+✓ Team collaboration complete
+✓ Cleaning up team resources
+
+Final Result:
+Your first agent team successfully collaborated to create an improved greeting!

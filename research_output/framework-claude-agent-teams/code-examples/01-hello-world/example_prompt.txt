@@ -1,0 +1,11 @@
+Create a simple agent team with 2 teammates:
+
+1. Greeter Agent
+   - Task: Create a friendly greeting message
+   - Should be creative and welcoming
+
+2. Validator Agent
+   - Task: Review the greeter's message
+   - Check if it's appropriate and friendly
+
+Have them work together, with the validator providing feedback on the greeting.

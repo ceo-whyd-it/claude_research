@@ -21,7 +21,10 @@
       "Bash(gh auth switch:*)",
       "Bash(gh repo delete:*)",
       "Bash(gh auth refresh:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(./claude.exe:*)",
+      "WebSearch",
+      "WebFetch(domain:kargarisaac.medium.com)"
     ]
   }
 }

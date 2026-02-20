@@ -200,25 +200,69 @@ def write_audit_log(entries: list[dict]) -> str | None:
 
 # ── Activity Watchdog ─────────────────────────────────────
 
-async def watchdog():
-    """Monitor for stalls — warn if no messages arrive for 30+ seconds."""
+WATCHDOG_ABORT_TIMEOUT = 300  # Auto-interrupt after 5 min of no activity
+YELLOW = "\033[33m"
+
+
+async def watchdog(client: ClaudeSDKClient):
+    """Monitor for stalls with escalating warnings and auto-interrupt.
+
+    Warning schedule: 30s, 60s, 120s, 240s, then every 120s.
+    At 5 min (300s), sends client.interrupt() to abort stuck operations.
+    Resets escalation when activity resumes.
+    """
+    next_warn_elapsed = 30.0   # first warning threshold (seconds of inactivity)
+    current_interval = 30.0    # gap between warnings — doubles each time
+    max_interval = 120.0       # cap on interval growth
+    interrupted = False
+
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
         last = activity_state["last_activity"]
         if last == 0.0:
             continue
         elapsed = time.time() - last
-        if elapsed > 30:
+
+        # Activity resumed — reset escalation state
+        if elapsed < 30:
+            next_warn_elapsed = 30.0
+            current_interval = 30.0
+            interrupted = False
+            continue
+
+        # ── Auto-interrupt after abort timeout ───────────
+        if elapsed >= WATCHDOG_ABORT_TIMEOUT and not interrupted:
+            interrupted = True
             pending = get_pending_tools_summary()
+            print(f"\n{YELLOW}{BOLD}\u26a0 No activity for {elapsed:.0f}s — "
+                  f"auto-interrupting stuck operation.{RESET}")
+            if pending:
+                print(f"{DIM}  Stuck: {pending}{RESET}")
+            try:
+                await client.interrupt()
+                print(f"{DIM}  Interrupt signal sent.{RESET}")
+            except Exception as e:
+                print(f"{DIM}  Interrupt failed: {e}{RESET}")
+            continue
+
+        # ── Escalating warnings ──────────────────────────
+        if elapsed >= next_warn_elapsed:
+            pending = get_pending_tools_summary()
+            remaining = max(0, WATCHDOG_ABORT_TIMEOUT - elapsed)
+
             if pending:
                 print(f"\n{DIM}\u23f3 No activity for {elapsed:.0f}s. "
-                      f"Pending: {pending}{RESET}")
+                      f"Pending: {pending}")
             else:
                 last_tool = activity_state["last_tool"]
                 last_id = activity_state["last_tool_id"][:8] if activity_state["last_tool_id"] else "?"
                 print(f"\n{DIM}\u23f3 No activity for {elapsed:.0f}s — "
-                      f"last tool: {last_tool} ({last_id}). "
-                      f"CLI subprocess may be stuck.{RESET}")
+                      f"last tool: {last_tool} ({last_id}).")
+            print(f"   Auto-interrupt in {remaining:.0f}s{RESET}")
+
+            # Escalate: double the interval, cap at max_interval
+            current_interval = min(current_interval * 2, max_interval)
+            next_warn_elapsed = elapsed + current_interval
 
 
 # ── Main ──────────────────────────────────────────────────
@@ -327,7 +371,7 @@ async def main():
                     while True:
                         hit_limit = False
                         activity_state["last_activity"] = time.time()
-                        wd_task = asyncio.create_task(watchdog())
+                        wd_task = asyncio.create_task(watchdog(client))
                         try:
                             async for message in client.receive_response():
                                 activity_state["last_activity"] = time.time()

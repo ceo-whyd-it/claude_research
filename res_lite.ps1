@@ -1,0 +1,1 @@
+$env:ANTHROPIC_BASE_URL="http://goldfinger:4000"; $env:ANTHROPIC_API_KEY="sk-1234"; $env:ANTHROPIC_DEFAULT_SONNET_MODEL="vllm-local-model"; $env:ANTHROPIC_DEFAULT_HAIKU_MODEL="vllm-local-model"; $env:ANTHROPIC_DEFAULT_OPUS_MODEL="vllm-local-model"; $env:LOG_LEVEL="debug";uv run python agent.py

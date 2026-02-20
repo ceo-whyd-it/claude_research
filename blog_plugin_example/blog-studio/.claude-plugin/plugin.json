@@ -1,0 +1,25 @@
+{
+  "name": "blog-studio",
+  "version": "1.0.0",
+  "description": "A comprehensive Astro blog creation suite. Research, draft, visualize, and review technical posts with Paul Graham-style editing.",
+  "author": {
+    "name": "Dalibor Kubis",
+    "email": "d@libor.kubis.ai"
+  },
+  "commands": [
+    "./commands/blog-new.md",
+    "./commands/blog-review.md"
+  ],
+  "agents": [
+    "./agents/editorial-manager.md",
+    "./agents/topic-researcher.md",
+    "./agents/creation-partner.md",
+    "./agents/visual-designer.md",
+    "./agents/strict-editor.md",
+    "./agents/astro-validator.md"
+  ],
+  "skills": [
+    "./skills/paul-graham-style",
+    "./skills/blog-rules-enforcer"
+  ]
+}

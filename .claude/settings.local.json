@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_codebase-validator_filesystem__list_allowed_directories",
+      "mcp__plugin_codebase-validator_filesystem__directory_tree",
+      "mcp__plugin_codebase-validator_filesystem__read_text_file",
+      "mcp__plugin_codebase-validator_filesystem__list_directory",
+      "Bash(timeout 15 uv run:*)",
+      "Bash(timeout 60 uv run python:*)",
+      "Bash(uv run python:*)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "mcp__plugin_codebase-validator_filesystem__search_files",
+      "mcp__plugin_codebase-validator_filesystem__list_directory_with_sizes",
+      "Bash(ls:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

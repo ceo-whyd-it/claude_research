@@ -108,8 +108,9 @@ def display_message(message: AssistantMessage, stream_log: str | None = None):
     for block in message.content:
         if isinstance(block, ToolUseBlock):
             tool_id_full = getattr(block, 'id', None)
-            if tool_id_full:
-                track_tool_start(tool_id_full, block.name, agent_name)
+            # Enrich agent name on entries created by PreToolUse hook
+            if tool_id_full and tool_id_full in pending_tools:
+                pending_tools[tool_id_full]["agent_name"] = agent_name
 
             if block.name == 'Task':
                 subagent_type = block.input.get('subagent_type', 'unknown')

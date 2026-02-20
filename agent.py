@@ -11,7 +11,7 @@ from claude_agent_sdk import (
 )
 from utils import (
     display_message, display_result, write_stream_log_header,
-    mark_tool_complete, get_pending_tools_summary,
+    track_tool_start, mark_tool_complete, get_pending_tools_summary,
 )
 
 load_dotenv()
@@ -137,6 +137,7 @@ async def audit_tool_calls(input_data: dict, tool_use_id: str, context) -> dict:
     })
     if tool_use_id:
         tool_start_times[tool_use_id] = time.time()
+        track_tool_start(tool_use_id, tool_name, "?")
     activity_state["last_tool"] = tool_name
     activity_state["last_tool_id"] = tool_use_id or ""
     return {}

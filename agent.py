@@ -33,7 +33,7 @@ RESET = "\033[0m"
 
 # ── Operational Logging State ────────────────────────────
 tool_start_times: dict[str, float] = {}
-activity_state = {"last_activity": 0.0, "last_tool": "none", "last_tool_id": ""}
+activity_state = {"last_activity": 0.0, "last_tool": "none", "last_tool_id": "", "interrupted": False}
 
 def print_welcome_banner():
     """Print a welcome banner with available topic types and example queries."""
@@ -241,7 +241,8 @@ async def watchdog(client: ClaudeSDKClient):
                 print(f"{DIM}  Stuck: {pending}{RESET}")
             try:
                 await client.interrupt()
-                print(f"{DIM}  Interrupt signal sent.{RESET}")
+                activity_state["interrupted"] = True
+                print(f"{DIM}  Interrupt signal sent — will auto-continue.{RESET}")
             except Exception as e:
                 print(f"{DIM}  Interrupt failed: {e}{RESET}")
             continue
@@ -364,6 +365,7 @@ async def main():
 
                     last_query = user_input
                     audit_log.clear()
+                    activity_state["interrupted"] = False
                     round_state["round"] += 1
                     round_state["start_time"] = time.time()
                     write_stream_log_header(STREAM_LOG_FILE, round_state["round"], user_input)
@@ -424,6 +426,21 @@ async def main():
                                             await client.query("/continue")
                                         else:
                                             hit_limit = False
+
+                                    # Auto-continue after watchdog interrupt
+                                    elif activity_state.get("interrupted"):
+                                        activity_state["interrupted"] = False
+                                        print(f"\n{YELLOW}{BOLD}Resuming after watchdog interrupt...{RESET}")
+                                        hit_limit = True
+                                        round_state["round"] += 1
+                                        round_state["start_time"] = time.time()
+                                        await client.query(
+                                            "Your previous operation was interrupted because "
+                                            "some tools (likely WebFetch) were stuck for over "
+                                            "5 minutes. Continue your research using the data "
+                                            "you've already collected. Do not retry the URLs "
+                                            "that timed out."
+                                        )
                         finally:
                             wd_task.cancel()
                             try:

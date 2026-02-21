@@ -50,6 +50,7 @@ def print_welcome_banner():
     print(f"  {CYAN}Compare{RESET}             \"Compare FastAPI vs Django vs Flask\"")
     print(f"  {CYAN}Paper Deep Dive{RESET}     \"Explain the Attention Is All You Need paper\"")
     print(f"  {CYAN}From Notes{RESET}          \"Enhance my notes on X\" (reads research_input/)")
+    print(f"  {CYAN}Blog Series{RESET}         \"Turn my research into blog posts\"")
     print()
     print(f"{BOLD}Example queries:{RESET}")
     print(f"  {DIM}>{RESET} Learn pytest from scratch")

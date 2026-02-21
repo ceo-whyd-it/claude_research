@@ -28,9 +28,12 @@ Skills define workflows for specific tasks. When the user asks to learn somethin
 | **General** | `research-general` | "What's out there on AI code review?" |
 | **Compare** | `research-compare` | "Compare FastAPI vs Django vs Flask" |
 | **Paper** | `research-paper` | "Explain the Attention Is All You Need paper" |
+| **From Notes** | `research-from-notes` | "Enhance my draft notes", "Research from my local files" |
 | **Blog Series** | `create-blog-series` | "Turn my research into blog posts", "Create blog series" |
 
 Ask the user to pick the appropriate type, then invoke the matching skill. Follow the skill's instructions precisely.
+
+**Note on research-from-notes:** Triggered when users mention enhancing, verifying, or expanding local draft files. Common phrases: "enhance my notes", "research from my drafts", "expand my local files on X". Expects input in `research_input/{topic}/`.
 
 Map each information source to the appropriate research subagent:
 

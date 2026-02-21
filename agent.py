@@ -108,7 +108,7 @@ def make_options(system_prompt, agents, hooks, resume=None):
     return ClaudeAgentOptions(
         system_prompt=system_prompt,
         setting_sources=["user", "project"],
-        allowed_tools=["Skill", "Task", "Write", "Bash", "WebSearch", "WebFetch"],
+        allowed_tools=["Skill", "Task", "Read", "Glob", "Write", "Bash", "WebSearch", "WebFetch"],
         model="sonnet",
         agents=agents,
         permission_mode="acceptEdits",

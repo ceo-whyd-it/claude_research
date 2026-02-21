@@ -1,4 +1,0 @@
-{"timestamp": 1771539383.737932, "tool": "Skill", "input_preview": "{'skill': 'create-blog-series'}"}
-{"timestamp": 1771539387.1523688, "tool": "Glob", "input_preview": "{'pattern': '**/*.py', 'path': 'D:/github_projects/claude_research'}"}
-{"timestamp": 1771539390.1542418, "tool": "Glob", "input_preview": "{'pattern': '**/*.py', 'path': 'D:/github_projects/claude_research'}"}
-{"timestamp": 1771539390.7585223, "tool": "Glob", "input_preview": "{'pattern': 'research_output/*'}"}

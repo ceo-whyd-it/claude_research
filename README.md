@@ -100,10 +100,24 @@ Debug output is written to `session_data/test_sdk_debug.log`.
 
 ## Harmony Protocol Fix (LiteLLM)
 
-If using vLLM with the Harmony protocol via a LiteLLM proxy, tool descriptions with `None` values cause validation errors. The included `litellm_tool_fix.py` provides a callback that patches null descriptions before requests reach vLLM.
+If using vLLM with the Harmony protocol via a LiteLLM proxy, tool descriptions with `None` values cause pydantic `ValidationError`s. The included `litellm_tool_fix.py` provides a LiteLLM callback with two hooks:
+
+- **`async_pre_call_hook`** — fires *before* provider translation, patches null `description` fields on tools in both Anthropic flat format (`{"name", "description", "input_schema"}`) and OpenAI nested format (`{"type": "function", "function": {...}}`).
+- **`log_pre_api_call`** — fires *after* translation (read-only), logs the final outgoing tool schemas so you can verify what vLLM actually receives.
 
 Register in your LiteLLM proxy config:
 ```yaml
 litellm_settings:
   callbacks: ["litellm_tool_fix.HarmonyToolFixer"]
 ```
+
+All activity is logged to `litellm_tool_fix.log` on the proxy server. To verify the fix is working:
+```bash
+# Check for patched descriptions
+grep "Patched null descriptions" litellm_tool_fix.log
+
+# Check outgoing tool format (should show schema_type: openai, param_key: parameters)
+grep "Outgoing tools" litellm_tool_fix.log
+```
+
+If tools are being patched but model behavior is still wrong, the issue is likely model capability rather than tool schema formatting.

@@ -24,7 +24,13 @@
       "Bash(git push:*)",
       "Bash(./claude.exe:*)",
       "WebSearch",
-      "WebFetch(domain:kargarisaac.medium.com)"
+      "WebFetch(domain:kargarisaac.medium.com)",
+      "Bash(git rm:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:docs.litellm.ai)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:kitemetric.com)",
+      "WebFetch(domain:deepwiki.com)"
     ]
   }
 }

@@ -44,3 +44,66 @@ Compare FastAPI vs Django vs Flask
 Explain the Attention Is All You Need paper
 Create a blog series from my Claude Agent SDK research
 ```
+
+## Debug Mode
+
+Enable verbose debug logging to see CLI stderr output (including full tool schemas sent to the API) printed to the console in real time.
+
+**Via CLI flag:**
+```bash
+uv run python agent.py --debug
+```
+
+**Via environment variable:**
+```bash
+L7_DEBUG=1 uv run python agent.py
+```
+
+Debug output includes:
+- Full CLI stderr from the Claude Code process
+- Tool schemas being sent to the API
+- Internal SDK debug messages
+
+All debug output is also written to `session_data/cli_debug.log` regardless of debug mode.
+
+## Diagnostic Tool (`test_sdk.py`)
+
+A minimal single-query agent for A/B testing between Claude and local LLMs (e.g. `gpt-oss-120b` via LiteLLM proxy). Uses only the main orchestrator + one subagent (`web_researcher`). Always outputs full debug info.
+
+**Basic usage (default Claude model):**
+```bash
+uv run python test_sdk.py "What is Python pattern matching?"
+```
+
+**Test with a local LLM:**
+```bash
+uv run python test_sdk.py --model gpt-oss-120b "What is Python pattern matching?"
+```
+
+**Test basic chat without tools (bypasses Harmony tool validation):**
+```bash
+uv run python test_sdk.py --no-tools "What is 2+2?"
+```
+
+**Show raw stream events:**
+```bash
+uv run python test_sdk.py --raw "What is Python pattern matching?"
+```
+
+| Flag | Description |
+|------|-------------|
+| `--model MODEL` | Model to use (default: `sonnet`). Use for A/B testing. |
+| `--no-tools` | Disable all tools. Tests basic chat without Harmony tool issues. |
+| `--raw` | Print raw stream event metadata for each message. |
+
+Debug output is written to `session_data/test_sdk_debug.log`.
+
+## Harmony Protocol Fix (LiteLLM)
+
+If using vLLM with the Harmony protocol via a LiteLLM proxy, tool descriptions with `None` values cause validation errors. The included `litellm_tool_fix.py` provides a callback that patches null descriptions before requests reach vLLM.
+
+Register in your LiteLLM proxy config:
+```yaml
+litellm_settings:
+  callbacks: ["litellm_tool_fix.HarmonyToolFixer"]
+```

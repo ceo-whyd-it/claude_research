@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import json
 import logging
@@ -15,6 +16,12 @@ from utils import (
 )
 
 load_dotenv()
+
+# ── Debug Mode ───────────────────────────────────────────
+parser = argparse.ArgumentParser(description="L7 Agent — Multi-Agent Research Orchestrator")
+parser.add_argument("--debug", action="store_true", help="Enable verbose debug logging")
+args = parser.parse_args()
+DEBUG_MODE = args.debug or os.environ.get("L7_DEBUG", "").lower() in ("1", "true")
 
 PROMPTS_DIR = "prompts"
 MAX_TURNS = 100
@@ -62,12 +69,14 @@ def print_welcome_banner():
     print()
 
 def handle_stderr(line: str) -> None:
-    """Append CLI stderr output to debug log file."""
+    """Append CLI stderr output to debug log file (and console in debug mode)."""
     try:
         with open(CLI_DEBUG_LOG, "a", encoding="utf-8") as f:
             f.write(f"[{datetime.now().strftime('%H:%M:%S')}] {line}\n")
     except Exception:
         pass
+    if DEBUG_MODE:
+        print(f"{DIM}[DEBUG] {line}{RESET}")
 
 
 def load_prompt(filename: str) -> str:
@@ -121,6 +130,7 @@ def make_options(system_prompt, agents, hooks, resume=None):
         hooks=hooks,
         stderr=handle_stderr,
         debug_stderr=None,
+        extra_args={"debug-to-stderr": None} if DEBUG_MODE else {},
     )
 
 
